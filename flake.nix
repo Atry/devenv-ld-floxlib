@@ -1,8 +1,8 @@
 {
   inputs = {
-    nixpkgs.url = "github:Atry/nixpkgs/NIX_LD_SO_CACHE";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
+    ld-floxlib.url = "github:flox/ld-floxlib";
   };
 
   nixConfig = {
@@ -10,7 +10,7 @@
     extra-substituters = "https://devenv.cachix.org";
   };
 
-  outputs = { self, nixpkgs, devenv, systems, ... } @ inputs:
+  outputs = { self, nixpkgs, devenv, systems, ld-floxlib, ... } @ inputs:
     let
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
     in
@@ -26,18 +26,20 @@
               modules = [
                 {
 
-                  env.NIX_LD_SO_CACHE = pkgs.runCommand "ld.so.cache" {} ''
-                    ${nixpkgs.lib.strings.escapeShellArg pkgs.glibc.bin}/bin/ldconfig -C $out -f ${
-                      nixpkgs.lib.strings.escapeShellArg (
-                        pkgs.writeTextFile {
-                          name = "ld.so.conf";
-                          text = ''
-                            ${pkgs.stdenv.cc.cc.lib}/lib
-                          '';
-                        }
-                      )
-                    }
-                  '';
+                  env = {
+                    LD_AUDIT = "${
+                      ld-floxlib.packages.${system}.ld-floxlib.overrideAttrs (self: super: {
+                        LD_FLOXLIB_LIB = pkgs.symlinkJoin {
+                          name = "ld-floxlib-lib";
+                          paths = [
+                            pkgs.stdenv.cc.cc.lib
+
+                            # Other fallback libraries
+                          ];
+                        };
+                      })
+                    }/lib/ld-floxlib.so";
+                  };
 
                   enterShell = ''
                     python -m grpc_tools.protoc --help
