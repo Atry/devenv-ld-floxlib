@@ -27,21 +27,21 @@
                 {
 
                   env = {
-                    LD_AUDIT = "${
-                      ld-floxlib.packages.${system}.ld-floxlib.overrideAttrs (self: super: {
-                        LD_FLOXLIB_LIB = pkgs.symlinkJoin {
-                          name = "ld-floxlib-lib";
-                          paths = [
-                            pkgs.stdenv.cc.cc.lib
+                    LD_AUDIT = "${ld-floxlib.packages.${system}.ld-floxlib}/lib/ld-floxlib.so";
 
-                            # Other fallback libraries
-                          ];
-                        };
-                      })
-                    }/lib/ld-floxlib.so";
+                    FLOX_ENV = pkgs.symlinkJoin {
+                      name = "flox-env";
+                      paths = [
+                        pkgs.zlib
+
+                        # Other fallback libraries
+                      ];
+                    };
                   };
 
                   enterShell = ''
+                    export LD_FLOXLIB_AUDIT_IMPURE=1
+                    export LD_FLOXLIB_DEBUG=1
                     python -m grpc_tools.protoc --help
                   '';
 
